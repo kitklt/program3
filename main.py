@@ -10,21 +10,23 @@ class Main(QtWidgets.QMainWindow):
         
         self.matrix = []
         self.data = []
-        
+        self.chart_labels = []
+        self.dict_lines = {}
+
         self.ui.setupUi(self)
 
         self.chart = pg.QChart()
         self.chartView = pg.QChartView()
         self.chartView = pg.QChartView(self.chart)
-        self.chartView.setRenderHint(QtGui.QPainter.Antialiasing)
         self.setStandartChart()
         self.setUiSettings()
-        
+
         self.ui.pushButton_2.clicked.connect(self.function_for_inport)
 
     def function_for_inport(self):
         self.data.clear()
         self.matrix.clear()
+        self.dict_lines.clear()
         filePath = QtWidgets.QFileDialog.getOpenFileName(self, "Выберите файл", "", "Text Files (*.txt);;All Files (*)")[0] 
         if filePath:
             with open(file=filePath, encoding="UTF-8")as f:
@@ -50,6 +52,7 @@ class Main(QtWidgets.QMainWindow):
             self.loadDataOnChart()
 
     def loadDataOnChart(self):
+        
         self.setStandartChart()
         x_list = [None, None]
         y_list = [None, None]
@@ -57,7 +60,23 @@ class Main(QtWidgets.QMainWindow):
         pen.setColor(QtGui.QColor("black"))
         pen.setWidth(2)
 
-        
+        markers_green_series = pg.QScatterSeries()
+        markers_green_series.setMarkerShape(pg.QScatterSeries.MarkerShape.MarkerShapeCircle)
+        markers_green_series.setMarkerSize(15)
+        markers_green_series.setBrush(QtGui.QBrush(QtGui.QColor("green")))
+        markers_green_series.setPen(pen)
+
+        markers_red_series = pg.QScatterSeries()
+        markers_red_series.setMarkerShape(pg.QScatterSeries.MarkerShape.MarkerShapeCircle)
+        markers_red_series.setMarkerSize(25)
+        markers_red_series.setBrush(QtGui.QBrush(QtGui.QColor("red")))
+        markers_red_series.setPen(pen)
+
+        markers_blue_series = pg.QScatterSeries()
+        markers_blue_series.setMarkerShape(pg.QScatterSeries.MarkerShape.MarkerShapeCircle)
+        markers_blue_series.setMarkerSize(40)
+        markers_blue_series.setBrush(QtGui.QBrush(QtGui.QColor("blue")))
+        markers_blue_series.setPen(pen)
 
         for data in self.data:
             name = data[0]
@@ -86,54 +105,75 @@ class Main(QtWidgets.QMainWindow):
                 if y > y_list[1]:
                     y_list[1] = y
 
-            # text_item = QtWidgets.QGraphicsTextItem(self.chart)
-            # text_item.setPlainText(name)
-            # text_item.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
-            # text_item.setPos(x, y)
-
+            type_point = None
             if count < 500000:
-                markers_green_series = pg.QScatterSeries()
-                markers_green_series.setMarkerShape(pg.QScatterSeries.MarkerShape.MarkerShapeCircle)
-                markers_green_series.setMarkerSize(15)
-                markers_green_series.setBrush(QtGui.QBrush(QtGui.QColor("green")))
-                markers_green_series.setPen(pen)
                 markers_green_series.append(x, y)
-                self.chart.addSeries(markers_green_series)
+                type_point = 1
             elif count < 1000000:
-                markers_red_series = pg.QScatterSeries()
-                markers_red_series.setMarkerShape(pg.QScatterSeries.MarkerShape.MarkerShapeCircle)
-                markers_red_series.setMarkerSize(25)
-                markers_red_series.setBrush(QtGui.QBrush(QtGui.QColor("red")))
-                markers_red_series.setPen(pen)
                 markers_red_series.append(x,y)
-                self.chart.addSeries(markers_red_series)
+                type_point = 2
             else:
-                markers_blue_series = pg.QScatterSeries()
-                markers_blue_series.setMarkerShape(pg.QScatterSeries.MarkerShape.MarkerShapeCircle)
-                markers_blue_series.setMarkerSize(40)
-                markers_blue_series.setBrush(QtGui.QBrush(QtGui.QColor("blue")))
-                markers_blue_series.setPen(pen)
                 markers_blue_series.append(x,y)
-                self.chart.addSeries(markers_blue_series)
+                type_point = 3
+
+            text_item = QtWidgets.QGraphicsTextItem(self.chart)
+            text_item.setPlainText(name)
+            text_item.setFont(QtGui.QFont("Arial", 12, QtGui.QFont.Bold))
+            text_item.setPos(x, y)
+            self.chart_labels.append({"item" : text_item, "pos" : QtCore.QPointF(x,y), "type_point" : type_point})
+
         else:
-            if self.data:
+            if self.data:           
                 for axis in self.chart.axes():
                     self.chart.removeAxis(axis)
                 axisX = pg.QValueAxis()
                 axisY = pg.QValueAxis()
-                # axisX.setTickCount(9)
-                # axisY.setTickCount(9)
-                axisX.setRange(x_list[0], x_list[1])
-                axisY.setRange(y_list[0], y_list[1])
+                axisX.setTickCount(9)
+                axisY.setTickCount(9)
+                axisX.setRange(x_list[0] - 20, x_list[1] + 20)
+                axisY.setRange(y_list[0] - 20, y_list[1] + 20)
                 axisX.setLabelsVisible(False)
                 axisY.setLabelsVisible(False)
                 self.chart.addAxis(axisX, QtCore.Qt.AlignBottom)
-                self.chart.addAxis(axisY, QtCore.Qt.AlignLeft)         
+                self.chart.addAxis(axisY, QtCore.Qt.AlignLeft)
+                self.chart.addSeries(markers_green_series)
+                markers_green_series.attachAxis(axisX)
+                markers_green_series.attachAxis(axisY)
+                self.chart.addSeries(markers_red_series)
+                markers_red_series.attachAxis(axisX)
+                markers_red_series.attachAxis(axisY)
+                self.chart.addSeries(markers_blue_series)   
+                markers_blue_series.attachAxis(axisX)
+                markers_blue_series.attachAxis(axisY)         
+                self.upgradeTextPosition()
+                
+
+    def upgradeTextPosition(self):
+        for label in self.chart_labels:
+            item = label["item"]
+            pos = label["pos"]
+            type_town = label["type_point"]
+            pixel_pos = self.chart.mapToPosition(pos)
+            rect = item.boundingRect()
+            if type_town == 1:
+                y_pos = 35
+            elif type_town == 2:
+                y_pos = 45
+            else:
+                y_pos = 50
+            item.setPos(pixel_pos.x() - (rect.width() / 2) - 5 , pixel_pos.y() - y_pos)
 
     def setStandartChart(self):
+        for label in self.chart_labels:
+            item = label['item']
+            scene = item.scene()
+            if scene:
+                scene.removeItem(item)
+            item.deleteLater()
+        self.chart_labels.clear()
         self.chart.removeAllSeries()
-        
-    
+        for axis in self.chart.axes():
+            self.chart.removeAxis(axis)
         axisX = pg.QValueAxis()
         axisY = pg.QValueAxis()
         axisX.setTickCount(9)
