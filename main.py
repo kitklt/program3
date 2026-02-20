@@ -75,7 +75,7 @@ class Main(QtWidgets.QMainWindow):
         markers_blue_series = pg.QScatterSeries()
         markers_blue_series.setMarkerShape(pg.QScatterSeries.MarkerShape.MarkerShapeCircle)
         markers_blue_series.setMarkerSize(40)
-        markers_blue_series.setBrush(QtGui.QBrush(QtGui.QColor("blue")))
+        markers_blue_series.setBrush(   QtGui.QBrush(QtGui.QColor("blue")))
         markers_blue_series.setPen(pen)
 
         for data in self.data:
@@ -123,7 +123,7 @@ class Main(QtWidgets.QMainWindow):
             self.chart_labels.append({"item" : text_item, "pos" : QtCore.QPointF(x,y), "type_point" : type_point})
 
         else:
-            if self.data:           
+            if self.data:
                 for axis in self.chart.axes():
                     self.chart.removeAxis(axis)
                 axisX = pg.QValueAxis()
@@ -136,6 +136,32 @@ class Main(QtWidgets.QMainWindow):
                 axisY.setLabelsVisible(False)
                 self.chart.addAxis(axisX, QtCore.Qt.AlignBottom)
                 self.chart.addAxis(axisY, QtCore.Qt.AlignLeft)
+            if self.matrix:
+                for i in range(len(self.matrix)):
+                    line = self.matrix[i]
+                    from_town = i
+                    x_from = self.data[i][1]
+                    y_form = self.data[i][2]
+                    towns_to = {}
+                    for to_town in range(len(line)):
+                        if line[to_town] != 0:
+                            id_town = to_town
+                            x_to = self.data[to_town][1]
+                            y_to = self.data[to_town][2]
+                            distance = line[to_town]
+                            towns_to[str(id_town)] = {"pos": QtCore.QPointF(x_to, y_to), "distance": distance}
+                            lineSeries = pg.QLineSeries()
+                            pen = QtGui.QPen(QtGui.QColor("black")) 
+                            pen.setWidth(2)
+                            lineSeries.setPen(pen)
+                            lineSeries.append(x_from, y_form)
+                            lineSeries.append(x_to, y_to)
+                            self.chart.addSeries(lineSeries)
+                            for axis in self.chart.axes():
+                                lineSeries.attachAxis(axis)
+                    else:
+                        self.dict_lines[str(from_town)] = {"pos" : QtCore.QPointF(x_from, y_form), "roads" : towns_to}
+            if self.data:           
                 self.chart.addSeries(markers_green_series)
                 markers_green_series.attachAxis(axisX)
                 markers_green_series.attachAxis(axisY)
@@ -144,8 +170,12 @@ class Main(QtWidgets.QMainWindow):
                 markers_red_series.attachAxis(axisY)
                 self.chart.addSeries(markers_blue_series)   
                 markers_blue_series.attachAxis(axisX)
-                markers_blue_series.attachAxis(axisY)         
+                markers_blue_series.attachAxis(axisY)    
                 self.upgradeTextPosition()
+            
+                
+
+
                 
 
     def upgradeTextPosition(self):
